@@ -606,7 +606,8 @@ input[type=range]::-webkit-slider-thumb{
   <div class="loading-screen">Loading your log…</div>
 </div>
 
-<input type="file" id="photoInput" accept="image/*" style="display:none;">
+<input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="galleryInput" accept="image/*" style="display:none;">
 <input type="file" id="backupFileInput" accept="application/json,.json" style="display:none;">
 
 <script>
@@ -652,6 +653,7 @@ const STRINGS = {
     snap_meal:'Snap a meal photo', snap_meal_hint:"We'll estimate calories & nutrition",
     scan_label:'Scan a nutrition label', scan_label_hint:'Reads the printed Nutrition Facts panel',
     choose_recipe:'Choose from my recipes', enter_manually:'Enter details manually instead',
+    from_gallery:'or choose from photo gallery',
     back:'Back', create_new_recipe:'+ Create a new recipe',
     reading_meal:'Reading your meal…', reading_label:'Reading the label…',
     try_again:'Try again', enter_manually_btn:'Enter manually',
@@ -702,6 +704,7 @@ const STRINGS = {
     snap_meal:'ถ่ายรูปมื้ออาหาร', snap_meal_hint:'เราจะประเมินแคลอรี่และสารอาหารให้',
     scan_label:'สแกนฉลากโภชนาการ', scan_label_hint:'อ่านค่าจากฉลากโภชนาการที่พิมพ์ไว้',
     choose_recipe:'เลือกจากสูตรอาหารของฉัน', enter_manually:'กรอกข้อมูลเอง',
+    from_gallery:'หรือเลือกจากคลังภาพ',
     back:'ย้อนกลับ', create_new_recipe:'+ สร้างสูตรอาหารใหม่',
     reading_meal:'กำลังอ่านมื้ออาหาร…', reading_label:'กำลังอ่านฉลาก…',
     try_again:'ลองอีกครั้ง', enter_manually_btn:'กรอกเอง',
@@ -1494,18 +1497,22 @@ function renderSheet(){
   let body = '';
   if(sheetStep==='capture'){
     body = `
-      <div class="capture-box" data-action="trigger-file" data-mode="meal">
+      <div class="capture-box" data-action="trigger-file" data-source="camera" data-mode="meal">
         <div class="capture-icon">${ICONS.camera}</div>
         <div class="capture-text">${tr('snap_meal')}</div>
         <div class="capture-hint">${tr('snap_meal_hint')}</div>
       </div>
-      <div class="capture-box" data-action="trigger-file" data-mode="label" style="margin-top:10px;">
+      <div class="manual-link" data-action="trigger-file" data-source="gallery" data-mode="meal" style="margin-top:6px;">${tr('from_gallery')}</div>
+
+      <div class="capture-box" data-action="trigger-file" data-source="camera" data-mode="label" style="margin-top:16px;">
         <div class="capture-icon">${ICONS.tag}</div>
         <div class="capture-text">${tr('scan_label')}</div>
         <div class="capture-hint">${tr('scan_label_hint')}</div>
       </div>
+      <div class="manual-link" data-action="trigger-file" data-source="gallery" data-mode="label" style="margin-top:6px;">${tr('from_gallery')}</div>
+
       ${recipes.length>0 ? `
-      <button class="btn-ghost" data-action="open-recipes" style="margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;">${ICONS.book} ${tr('choose_recipe')}</button>
+      <button class="btn-ghost" data-action="open-recipes" style="margin-top:14px; display:flex; align-items:center; justify-content:center; gap:8px;">${ICONS.book} ${tr('choose_recipe')}</button>
       ` : ''}
       <div class="manual-link" data-action="go-manual">${tr('enter_manually')}</div>
     `;
@@ -1611,7 +1618,11 @@ function attachHandlers(){
     else if(action==='delete-entry'){ e.stopPropagation(); await deleteEntry(el.dataset.id); }
     else if(action==='close-sheet'){ closeSheet(); }
     else if(action==='overlay-close'){ if(e.target===el) closeSheet(); }
-    else if(action==='trigger-file'){ sheetMode = el.dataset.mode || 'meal'; document.getElementById('photoInput').click(); }
+    else if(action==='trigger-file'){
+      sheetMode = el.dataset.mode || 'meal';
+      const source = el.dataset.source || 'camera';
+      document.getElementById(source==='gallery' ? 'galleryInput' : 'photoInput').click();
+    }
     else if(action==='go-manual'){ sheetMode='meal'; sheetStep='manual'; sheetResult = sheetResult || {name:'',portion:'',calories:0,protein:0,carbs:0,fat:0}; render(); }
     else if(action==='open-recipes'){ sheetStep='recipes'; render(); }
     else if(action==='back-to-capture'){ sheetStep='capture'; render(); }
@@ -1708,7 +1719,7 @@ function stepValue(id, dir){
   el.value = v;
 }
 
-document.getElementById('photoInput').addEventListener('change', async (e)=>{
+async function handleSelectedPhoto(e){
   const file = e.target.files[0];
   if(!file) return;
   try{
@@ -1730,7 +1741,9 @@ document.getElementById('photoInput').addEventListener('change', async (e)=>{
     render();
   }
   e.target.value = '';
-});
+}
+document.getElementById('photoInput').addEventListener('change', handleSelectedPhoto);
+document.getElementById('galleryInput').addEventListener('change', handleSelectedPhoto);
 
 document.getElementById('backupFileInput').addEventListener('change', async (e)=>{
   const file = e.target.files[0];

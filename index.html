@@ -606,6 +606,8 @@ const ICONS = {
 
 let goals = { ...DEFAULT_GOALS };
 let entries = [];
+let apiKey = '';
+let geminiApiKey = '';
 let currentTab = 'today';
 let currentDate = localDateStr(new Date());
 const REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -691,6 +693,20 @@ async function loadEntries(){
 }
 async function saveEntriesToStorage(list){
   await storageSet('entries', JSON.stringify(list));
+}
+async function loadApiKey(){
+  const v = await storageGet('apiKey');
+  return v || '';
+}
+async function saveApiKeyToStorage(key){
+  await storageSet('apiKey', key);
+}
+async function loadGeminiKey(){
+  const v = await storageGet('geminiApiKey');
+  return v || '';
+}
+async function saveGeminiKeyToStorage(key){
+  await storageSet('geminiApiKey', key);
 }
 
 function entriesForDate(dateStr){ return entries.filter(e=>e.date===dateStr); }
@@ -976,6 +992,28 @@ function animateWeeklyVisuals(){
 function renderGoals(){
   return `
   <div class="glass form-card">
+    <h3>Google Gemini API key <span style="color:var(--success); font-weight:600; font-size:11px;">FREE</span></h3>
+    <div class="form-sub">Recommended — no cost, no card needed. Get a free key at aistudio.google.com/apikey, sign in with Google, tap "Create API key." Used first for photo analysis if set.</div>
+    <div class="field">
+      <label>Gemini API key</label>
+      <input type="password" id="gemini-key" value="${escapeHtml(geminiApiKey)}" placeholder="AIza...">
+    </div>
+    <button class="btn-ghost" data-action="save-gemini-key" style="margin-top:4px;">${geminiApiKey ? 'Update key' : 'Save key'}</button>
+    ${geminiApiKey ? `<div class="link-danger" data-action="remove-gemini-key" style="color:var(--text-dim);">Remove saved key</div>` : ''}
+  </div>
+
+  <div class="glass form-card">
+    <h3>Anthropic API key <span style="color:var(--text-dim); font-weight:500; font-size:11px;">optional, paid</span></h3>
+    <div class="form-sub">Used only if no Gemini key is set above. Get one at console.anthropic.com/settings/keys — stored only on this device.</div>
+    <div class="field">
+      <label>API key</label>
+      <input type="password" id="api-key" value="${escapeHtml(apiKey)}" placeholder="sk-ant-...">
+    </div>
+    <button class="btn-ghost" data-action="save-key" style="margin-top:4px;">${apiKey ? 'Update key' : 'Save key'}</button>
+    ${apiKey ? `<div class="link-danger" data-action="remove-key" style="color:var(--text-dim);">Remove saved key</div>` : ''}
+  </div>
+
+  <div class="glass form-card">
     <h3>Daily calorie goal</h3>
     <div class="form-sub">Drag to set your target intake</div>
     <div class="slider-num" id="calSliderNum">${goals.calories}</div>
@@ -1106,6 +1144,10 @@ function attachHandlers(){
     else if(action==='auto-macros'){ autoMacros(); }
     else if(action==='calc-calories'){ caloriesFromMacros(); }
     else if(action==='clear-data'){ await clearAllData(); }
+    else if(action==='save-key'){ await saveApiKey(); }
+    else if(action==='remove-key'){ await removeApiKey(); }
+    else if(action==='save-gemini-key'){ await saveGeminiKey(); }
+    else if(action==='remove-gemini-key'){ await removeGeminiKey(); }
     else if(action==='step'){ stepValue(el.dataset.target, Number(el.dataset.dir)); }
   };
 
@@ -1182,34 +1224,85 @@ async function deleteEntry(id){
   showToast('Entry deleted');
 }
 
-async function analyzePhoto(){
-  sheetStep = 'analyzing';
-  render();
-  try{
-    const prompt = `You are a nutrition estimation assistant. Analyze the food in this photo and respond with ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
+const NUTRITION_PROMPT = `You are a nutrition estimation assistant. Analyze the food in this photo and respond with ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
 {"items":[{"name":"string","portion":"string"}],"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"confidence":"low|medium|high","note":"short string, 12 words max"}
 Estimate totals for the ENTIRE meal shown (sum of all visible food items), using typical portion sizes for what's visible. Be realistic, not overly precise.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sheetImageBase64 } },
-            { type: "text", text: prompt }
-          ]
-        }]
-      })
-    });
-    const data = await response.json();
-    const textBlock = (data.content||[]).find(b=>b.type==='text');
-    if(!textBlock) throw new Error('No response from analysis.');
-    let clean = textBlock.text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
-    const parsed = JSON.parse(clean);
+async function callGemini(){
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiApiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: "image/jpeg", data: sheetImageBase64 } },
+          { text: NUTRITION_PROMPT }
+        ]
+      }],
+      generationConfig: { response_mime_type: "application/json" }
+    })
+  });
+  if(!response.ok){
+    if(response.status===400 || response.status===403){
+      throw new Error("Gemini API key was rejected. Double-check it in the Goals tab.");
+    }
+    if(response.status===429){
+      throw new Error("Gemini free tier rate limit hit. Try again in a moment, or enter manually.");
+    }
+    throw new Error(`Analysis request failed (${response.status}).`);
+  }
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if(!text) throw new Error('No response from analysis.');
+  let clean = text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  return JSON.parse(clean);
+}
+
+async function callAnthropic(){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: sheetImageBase64 } },
+          { type: "text", text: NUTRITION_PROMPT }
+        ]
+      }]
+    })
+  });
+  if(!response.ok){
+    if(response.status===401){
+      throw new Error("Anthropic API key was rejected. Double-check it in the Goals tab.");
+    }
+    throw new Error(`Analysis request failed (${response.status}).`);
+  }
+  const data = await response.json();
+  const textBlock = (data.content||[]).find(b=>b.type==='text');
+  if(!textBlock) throw new Error('No response from analysis.');
+  let clean = textBlock.text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  return JSON.parse(clean);
+}
+
+async function analyzePhoto(){
+  if(!geminiApiKey && !apiKey){
+    sheetError = "No API key set. Go to the Goals tab and add a free Google Gemini key (recommended) to enable photo analysis.";
+    sheetStep = 'error';
+    render();
+    return;
+  }
+  sheetStep = 'analyzing';
+  render();
+  try{
+    const parsed = geminiApiKey ? await callGemini() : await callAnthropic();
 
     const itemsText = (parsed.items||[]).map(it=>it.portion? `${it.name} (${it.portion})` : it.name).join(', ');
     sheetResult = {
@@ -1226,7 +1319,9 @@ Estimate totals for the ENTIRE meal shown (sum of all visible food items), using
     render();
   }catch(err){
     console.error('analysis failed', err);
-    sheetError = "Couldn't estimate this photo. You can try again or enter the meal manually.";
+    sheetError = (err && err.message && (err.message.includes('API key') || err.message.includes('request failed') || err.message.includes('rate limit')))
+      ? err.message
+      : "Couldn't estimate this photo. You can try again or enter the meal manually.";
     sheetStep = 'error';
     render();
   }
@@ -1301,9 +1396,38 @@ async function clearAllData(){
   render();
 }
 
+async function saveApiKey(){
+  const val = document.getElementById('api-key').value.trim();
+  apiKey = val;
+  await saveApiKeyToStorage(apiKey);
+  showToast(apiKey ? 'API key saved' : 'API key cleared');
+  render();
+}
+async function removeApiKey(){
+  apiKey = '';
+  await saveApiKeyToStorage('');
+  showToast('API key removed');
+  render();
+}
+async function saveGeminiKey(){
+  const val = document.getElementById('gemini-key').value.trim();
+  geminiApiKey = val;
+  await saveGeminiKeyToStorage(geminiApiKey);
+  showToast(geminiApiKey ? 'Gemini key saved' : 'Gemini key cleared');
+  render();
+}
+async function removeGeminiKey(){
+  geminiApiKey = '';
+  await saveGeminiKeyToStorage('');
+  showToast('Gemini key removed');
+  render();
+}
+
 async function init(){
   goals = await loadGoals();
   entries = await loadEntries();
+  apiKey = await loadApiKey();
+  geminiApiKey = await loadGeminiKey();
   render();
 }
 init();

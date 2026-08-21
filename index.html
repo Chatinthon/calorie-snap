@@ -165,6 +165,34 @@ button{font-family:inherit;}
 .pill-fill{height:100%; border-radius:4px; transition:width .9s cubic-bezier(.25,.8,.3,1); width:0%;}
 
 /* ---------- meal groups ---------- */
+.weight-card{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; margin-bottom:14px;
+}
+.weight-left{display:flex; align-items:center; gap:11px;}
+.weight-icon{
+  width:38px; height:38px; border-radius:11px;
+  background:rgba(56,189,248,0.15); color:var(--carbs);
+  display:flex; align-items:center; justify-content:center;
+}
+.weight-icon svg{width:18px; height:18px;}
+.weight-val{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px;}
+.weight-sub{font-size:11px; color:var(--text-dim); margin-top:1px;}
+.copy-yesterday-btn{
+  width:100%;
+  padding:11px;
+  border-radius:var(--r-md);
+  border:1px dashed rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.02);
+  color:var(--text-dim);
+  font-size:12.5px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  cursor:pointer;
+  margin-bottom:14px;
+}
+.copy-yesterday-btn svg{width:14px; height:14px;}
+.copy-yesterday-btn:active{background:rgba(255,255,255,0.05);}
+.weight-unit-select{display:flex; gap:7px; margin:12px 0 4px;}
 .meal-group{margin-bottom:14px; padding:14px 14px 6px;}
 .meal-group-head{
   display:flex;
@@ -579,13 +607,16 @@ input[type=range]::-webkit-slider-thumb{
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none;">
+<input type="file" id="backupFileInput" accept="application/json,.json" style="display:none;">
 
 <script>
 (function(){
 
 const DEFAULT_GOALS = { calories: 2000, protein: 100, carbs: 250, fat: 65 };
 const MEAL_TYPES = ['breakfast','lunch','dinner','snack'];
-const MEAL_LABELS = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', snack:'Snack' };
+const MEAL_LABELS_EN = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', snack:'Snack' };
+const MEAL_LABELS_TH = { breakfast:'มื้อเช้า', lunch:'มื้อกลางวัน', dinner:'มื้อเย็น', snack:'ของว่าง' };
+let MEAL_LABELS = MEAL_LABELS_EN;
 const INGREDIENT_UNITS = ['g','kg','oz','lb','ml','l','tbsp','tsp','cup','whole','clove','slice','pinch','to taste'];
 const MEAL_EMOJI = { breakfast:'🍳', lunch:'🥗', dinner:'🍽️', snack:'🍪' };
 const MEAL_BG = {
@@ -594,6 +625,112 @@ const MEAL_BG = {
   dinner:'linear-gradient(135deg, rgba(167,139,250,0.25), rgba(167,139,250,0.08))',
   snack:'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.08))'
 };
+
+const STRINGS = {
+  en: {
+    nav_today:'Today', nav_weekly:'Weekly', nav_recipes:'Recipes', nav_api:'API', nav_goals:'Goals',
+    sub_weekly:'Last 7 days', sub_recipes:'Build & reuse meals', sub_api:'Powers photo analysis', sub_goals:'Daily targets',
+    greet_late:'Still up?', greet_morning:'Good morning', greet_afternoon:'Good afternoon', greet_evening:'Good evening', greet_night:'Good night',
+    kcal_left:'kcal left', kcal_over:'kcal over',
+    protein:'Protein', carbs:'Carbs', fat:'Fat',
+    add_btn:'Add', nothing_logged:'Nothing logged yet — tap + to snap a photo.',
+    weekly_title:'Your week', avg_day:'Avg / day', goal_days_met:'Goal days met',
+    avg_protein:'Avg protein', avg_carbs:'Avg carbs', avg_fat:'Avg fat', meals_logged:'Meals logged',
+    daily_goal_legend:'daily goal',
+    goal_cal_title:'Daily calorie goal', goal_cal_sub:'Drag to set your target intake',
+    your_goals:'Your goals',
+    macro_targets_title:'Macro targets', macro_targets_sub:'Grams per day',
+    suggest_macros:'Suggest macros from calories', calc_calories:'Calories from macros',
+    save_goals:'Save goals', clear_all_meals:'Clear all logged meals',
+    my_recipes:'My recipes', create_recipe:'+ Create a recipe',
+    recipes_empty:'No saved recipes yet. Build one above, or check "Save as a recipe" next time you log a meal.',
+    gemini_title:'Google Gemini API key', gemini_sub:'Recommended — no cost, no card needed. Get a free key at aistudio.google.com/apikey, sign in with Google, tap "Create API key." Used first for photo analysis if set.',
+    anthropic_title:'Anthropic API key', anthropic_sub:'Used only if no Gemini key is set above. Get one at console.anthropic.com/settings/keys — stored only on this device.',
+    api_key_label:'API key', save_key:'Save key', update_key:'Update key', remove_key:'Remove saved key',
+    language_title:'Language', language_sub:'Choose the app display language',
+    log_meal:'Log a meal', edit_meal:'Edit meal',
+    snap_meal:'Snap a meal photo', snap_meal_hint:"We'll estimate calories & nutrition",
+    scan_label:'Scan a nutrition label', scan_label_hint:'Reads the printed Nutrition Facts panel',
+    choose_recipe:'Choose from my recipes', enter_manually:'Enter details manually instead',
+    back:'Back', create_new_recipe:'+ Create a new recipe',
+    reading_meal:'Reading your meal…', reading_label:'Reading the label…',
+    try_again:'Try again', enter_manually_btn:'Enter manually',
+    food_name:'Food name', portion:'Portion', servings_consumed:'Servings consumed',
+    calories_kcal:'Calories (kcal)', protein_g:'Protein (g)', carbs_g:'Carbs (g)', fat_g:'Fat (g)',
+    save_as_recipe:'Save as a recipe for quick logging later',
+    add_to_log:'Add to log', save_changes:'Save changes',
+    create_recipe_title:'Create a recipe', edit_recipe_title:'Edit recipe',
+    recipe_name:'Recipe name', ingredients_label:'Ingredients & amounts', add_ingredient:'+ Add ingredient',
+    recipe_yields:'Recipe yields (servings)', calculate_nutrition:'Calculate nutrition', delete_recipe:'Delete this recipe',
+    calculating:'Calculating recipe nutrition…',
+    totals_note:'Whole recipe totals — edit if needed. Values per serving are calculated automatically below.',
+    total_calories:'Total calories (kcal)', total_protein:'Total protein (g)', total_carbs:'Total carbs (g)', total_fat:'Total fat (g)',
+    servings:'Servings', per_serving:'Per serving',
+    save_recipe:'Save recipe', back_to_ingredients:'Back to ingredients',
+    weight_title:'Weight', weight_not_logged:'Not logged today', weight_log:'Log', weight_edit:'Edit',
+    weight_sheet_title:'Log your weight', weight_field:'Weight', weight_save:'Save weight', weight_delete:'Delete this entry',
+    weight_trend:'Weight trend', weight_current:'Current weight', weight_change:'Weekly change',
+    weight_need_more:'Log your weight on 2+ days to see a trend.',
+    copy_yesterday:"Copy yesterday's meals",
+    backup_title:'Backup & restore', backup_sub:'Save all your data (meals, recipes, weight, goals, settings) as a file you can keep safe or move to a new device.',
+    export_backup:'Download backup', import_backup:'Restore from backup file',
+    restore_confirm:"This will replace all current data — meals, recipes, weight, goals, and settings — with what's in the backup file. This cannot be undone. Continue?",
+    backup_downloaded:'Backup downloaded', backup_restored:'Backup restored', backup_bad_file:'Could not read that backup file'
+  },
+  th: {
+    nav_today:'วันนี้', nav_weekly:'รายสัปดาห์', nav_recipes:'สูตรอาหาร', nav_api:'API', nav_goals:'เป้าหมาย',
+    sub_weekly:'7 วันล่าสุด', sub_recipes:'สร้างและใช้สูตรซ้ำ', sub_api:'สำหรับวิเคราะห์รูปภาพ', sub_goals:'เป้าหมายรายวัน',
+    greet_late:'ยังไม่นอนอีกเหรอ?', greet_morning:'สวัสดีตอนเช้า', greet_afternoon:'สวัสดีตอนบ่าย', greet_evening:'สวัสดีตอนเย็น', greet_night:'ราตรีสวัสดิ์',
+    kcal_left:'kcal เหลือ', kcal_over:'kcal เกิน',
+    protein:'โปรตีน', carbs:'คาร์บ', fat:'ไขมัน',
+    add_btn:'เพิ่ม', nothing_logged:'ยังไม่มีรายการ — แตะ + เพื่อถ่ายรูป',
+    weekly_title:'สัปดาห์ของคุณ', avg_day:'เฉลี่ย/วัน', goal_days_met:'วันที่ถึงเป้าหมาย',
+    avg_protein:'โปรตีนเฉลี่ย', avg_carbs:'คาร์บเฉลี่ย', avg_fat:'ไขมันเฉลี่ย', meals_logged:'มื้อที่บันทึก',
+    daily_goal_legend:'เป้าหมายรายวัน',
+    goal_cal_title:'เป้าหมายแคลอรี่ต่อวัน', goal_cal_sub:'เลื่อนเพื่อตั้งเป้าหมาย',
+    your_goals:'เป้าหมายของคุณ',
+    macro_targets_title:'เป้าหมายสารอาหาร', macro_targets_sub:'กรัมต่อวัน',
+    suggest_macros:'แนะนำสัดส่วนจากแคลอรี่', calc_calories:'คำนวณแคลอรี่จากสารอาหาร',
+    save_goals:'บันทึกเป้าหมาย', clear_all_meals:'ล้างรายการอาหารทั้งหมด',
+    my_recipes:'สูตรอาหารของฉัน', create_recipe:'+ สร้างสูตรอาหาร',
+    recipes_empty:'ยังไม่มีสูตรอาหารที่บันทึกไว้ สร้างได้ด้านบน หรือติ๊ก "บันทึกเป็นสูตรอาหาร" ตอนบันทึกมื้ออาหาร',
+    gemini_title:'Google Gemini API key', gemini_sub:'แนะนำ — ฟรี ไม่ต้องใช้บัตร รับคีย์ฟรีที่ aistudio.google.com/apikey เข้าสู่ระบบด้วย Google แล้วแตะ "Create API key"',
+    anthropic_title:'Anthropic API key', anthropic_sub:'ใช้เมื่อไม่มี Gemini key ด้านบน รับคีย์ที่ console.anthropic.com/settings/keys — เก็บไว้ในเครื่องนี้เท่านั้น',
+    api_key_label:'API key', save_key:'บันทึกคีย์', update_key:'อัปเดตคีย์', remove_key:'ลบคีย์ที่บันทึกไว้',
+    language_title:'ภาษา', language_sub:'เลือกภาษาที่แสดงในแอป',
+    log_meal:'บันทึกมื้ออาหาร', edit_meal:'แก้ไขมื้ออาหาร',
+    snap_meal:'ถ่ายรูปมื้ออาหาร', snap_meal_hint:'เราจะประเมินแคลอรี่และสารอาหารให้',
+    scan_label:'สแกนฉลากโภชนาการ', scan_label_hint:'อ่านค่าจากฉลากโภชนาการที่พิมพ์ไว้',
+    choose_recipe:'เลือกจากสูตรอาหารของฉัน', enter_manually:'กรอกข้อมูลเอง',
+    back:'ย้อนกลับ', create_new_recipe:'+ สร้างสูตรอาหารใหม่',
+    reading_meal:'กำลังอ่านมื้ออาหาร…', reading_label:'กำลังอ่านฉลาก…',
+    try_again:'ลองอีกครั้ง', enter_manually_btn:'กรอกเอง',
+    food_name:'ชื่ออาหาร', portion:'ปริมาณ', servings_consumed:'จำนวนเสิร์ฟที่กิน',
+    calories_kcal:'แคลอรี่ (kcal)', protein_g:'โปรตีน (g)', carbs_g:'คาร์บ (g)', fat_g:'ไขมัน (g)',
+    save_as_recipe:'บันทึกเป็นสูตรอาหารสำหรับใช้ครั้งถัดไป',
+    add_to_log:'เพิ่มลงบันทึก', save_changes:'บันทึกการแก้ไข',
+    create_recipe_title:'สร้างสูตรอาหาร', edit_recipe_title:'แก้ไขสูตรอาหาร',
+    recipe_name:'ชื่อสูตรอาหาร', ingredients_label:'ส่วนผสมและปริมาณ', add_ingredient:'+ เพิ่มส่วนผสม',
+    recipe_yields:'สูตรนี้ทำได้ (จำนวนเสิร์ฟ)', calculate_nutrition:'คำนวณคุณค่าทางโภชนาการ', delete_recipe:'ลบสูตรอาหารนี้',
+    calculating:'กำลังคำนวณคุณค่าทางโภชนาการ…',
+    totals_note:'ยอดรวมทั้งสูตร — แก้ไขได้ถ้าต้องการ ค่าต่อเสิร์ฟจะคำนวณให้อัตโนมัติด้านล่าง',
+    total_calories:'แคลอรี่รวม (kcal)', total_protein:'โปรตีนรวม (g)', total_carbs:'คาร์บรวม (g)', total_fat:'ไขมันรวม (g)',
+    servings:'จำนวนเสิร์ฟ', per_serving:'ต่อเสิร์ฟ',
+    save_recipe:'บันทึกสูตรอาหาร', back_to_ingredients:'กลับไปแก้ส่วนผสม',
+    weight_title:'น้ำหนัก', weight_not_logged:'ยังไม่บันทึกวันนี้', weight_log:'บันทึก', weight_edit:'แก้ไข',
+    weight_sheet_title:'บันทึกน้ำหนัก', weight_field:'น้ำหนัก', weight_save:'บันทึกน้ำหนัก', weight_delete:'ลบรายการนี้',
+    weight_trend:'แนวโน้มน้ำหนัก', weight_current:'น้ำหนักปัจจุบัน', weight_change:'เปลี่ยนแปลงรายสัปดาห์',
+    weight_need_more:'บันทึกน้ำหนักอย่างน้อย 2 วันเพื่อดูแนวโน้ม',
+    copy_yesterday:'คัดลอกมื้ออาหารจากเมื่อวาน',
+    backup_title:'สำรองและกู้คืนข้อมูล', backup_sub:'บันทึกข้อมูลทั้งหมด (มื้ออาหาร สูตรอาหาร น้ำหนัก เป้าหมาย การตั้งค่า) เป็นไฟล์ เก็บไว้หรือย้ายไปเครื่องใหม่ได้',
+    export_backup:'ดาวน์โหลดไฟล์สำรอง', import_backup:'กู้คืนจากไฟล์สำรอง',
+    restore_confirm:'การทำนี้จะแทนที่ข้อมูลปัจจุบันทั้งหมด — มื้ออาหาร สูตรอาหาร น้ำหนัก เป้าหมาย และการตั้งค่า — ด้วยข้อมูลในไฟล์สำรอง ไม่สามารถย้อนกลับได้ ดำเนินการต่อ?',
+    backup_downloaded:'ดาวน์โหลดไฟล์สำรองแล้ว', backup_restored:'กู้คืนข้อมูลแล้ว', backup_bad_file:'ไม่สามารถอ่านไฟล์สำรองนี้ได้'
+  }
+};
+function tr(key){
+  return (STRINGS[appLang] && STRINGS[appLang][key]) || STRINGS.en[key] || key;
+}
 
 const ICONS = {
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
@@ -610,15 +747,20 @@ const ICONS = {
   meal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9M8 3v4a2 2 0 002 2M16 3v18M8 12v9"/></svg>',
   tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L11 3.83 4 4l-.17 7L13.41 20.6a2 2 0 002.83 0l4.35-4.35a2 2 0 000-2.84z"/><circle cx="8.5" cy="8.5" r="1.2"/></svg>',
   book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
-  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.5 12.5L20 3M20 3h-4M20 3v4M16.5 6.5L18 8"/></svg>'
+  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.5 12.5L20 3M20 3h-4M20 3v4M16.5 6.5L18 8"/></svg>',
+  scale:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="13" r="4.5"/><path d="M12 13l2.2-2.2M9 5h6"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>'
 };
 
 let goals = { ...DEFAULT_GOALS };
 let entries = [];
 let recipes = [];
+let weights = []; // [{date:'YYYY-MM-DD', kg:number}]
+let weightUnit = 'kg'; // 'kg' | 'lb'
 let apiKey = '';
 let geminiApiKey = '';
 let currentTab = 'today';
+let appLang = 'en';
 let currentDate = localDateStr(new Date());
 const REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -643,6 +785,11 @@ let rbIngredients = [];
 let rbTotals = null; // {calories, protein, carbs, fat}
 let rbError = '';
 let rbEditingRecipeId = null;
+
+// weight sheet state
+let wsOpen = false;
+let wsValue = '';
+let wsUnit = 'kg';
 
 function localDateStr(d){
   const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
@@ -671,11 +818,11 @@ function dayAbbr(dateStr){
 }
 function greetingForNow(){
   const h = new Date().getHours();
-  if(h<5) return 'Still up?';
-  if(h<12) return 'Good morning';
-  if(h<17) return 'Good afternoon';
-  if(h<21) return 'Good evening';
-  return 'Good night';
+  if(h<5) return tr('greet_late');
+  if(h<12) return tr('greet_morning');
+  if(h<17) return tr('greet_afternoon');
+  if(h<21) return tr('greet_evening');
+  return tr('greet_night');
 }
 
 // ---------- storage ----------
@@ -723,12 +870,34 @@ async function loadRecipes(){
 async function saveRecipesToStorage(list){
   await storageSet('recipes', JSON.stringify(list));
 }
+async function loadWeights(){
+  const v = await storageGet('weights');
+  if(v){ try{ return JSON.parse(v); }catch(e){} }
+  return [];
+}
+async function saveWeightsToStorage(list){
+  await storageSet('weights', JSON.stringify(list));
+}
+async function loadWeightUnit(){
+  const v = await storageGet('weightUnit');
+  return (v==='lb' || v==='kg') ? v : 'kg';
+}
+async function saveWeightUnitToStorage(unit){
+  await storageSet('weightUnit', unit);
+}
 async function loadApiKey(){
   const v = await storageGet('apiKey');
   return v || '';
 }
 async function saveApiKeyToStorage(key){
   await storageSet('apiKey', key);
+}
+async function loadLang(){
+  const v = await storageGet('appLang');
+  return (v==='th' || v==='en') ? v : 'en';
+}
+async function saveLangToStorage(lang){
+  await storageSet('appLang', lang);
 }
 async function loadGeminiKey(){
   const v = await storageGet('geminiApiKey');
@@ -752,6 +921,27 @@ function last7Dates(endDateStr){
   const arr=[]; for(let i=6;i>=0;i--) arr.push(shiftDate(endDateStr,-i)); return arr;
 }
 function uid(){ return 'e'+Date.now()+Math.random().toString(36).slice(2,8); }
+
+// ---------- weight helpers ----------
+function kgToLb(kg){ return kg*2.20462; }
+function lbToKg(lb){ return lb/2.20462; }
+function kgToDisplay(kg, unit){ return unit==='lb' ? kgToLb(kg) : kg; }
+function displayToKg(val, unit){ return unit==='lb' ? lbToKg(val) : val; }
+function weightForDate(dateStr){ return weights.find(w=>w.date===dateStr) || null; }
+function latestWeight(){
+  if(weights.length===0) return null;
+  return [...weights].sort((a,b)=> a.date < b.date ? 1 : -1)[0];
+}
+async function upsertWeight(dateStr, kg){
+  const idx = weights.findIndex(w=>w.date===dateStr);
+  if(idx>-1) weights[idx] = { date: dateStr, kg };
+  else weights.push({ date: dateStr, kg });
+  await saveWeightsToStorage(weights);
+}
+async function deleteWeightForDate(dateStr){
+  weights = weights.filter(w=>w.date!==dateStr);
+  await saveWeightsToStorage(weights);
+}
 function escapeHtml(s){
   if(s===undefined||s===null) return '';
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -812,23 +1002,26 @@ function render(){
     <button class="fab" data-action="fab-add">${ICONS.plus}</button>
     ${sheetOpen ? renderSheet() : ''}
     ${rbOpen ? renderRecipeBuilder() : ''}
+    ${wsOpen ? renderWeightSheet() : ''}
   `;
   attachHandlers();
   if(currentTab==='today') animateTodayVisuals();
   if(currentTab==='weekly') animateWeeklyVisuals();
 }
 
-const TAB_META = {
-  today:   { greeting: null, sub: null }, // computed dynamically
-  weekly:  { greeting: 'Your week', sub: 'Last 7 days' },
-  recipes: { greeting: 'My recipes', sub: 'Build & reuse meals' },
-  api:     { greeting: 'API keys', sub: 'Powers photo analysis' },
-  goals:   { greeting: 'Your goals', sub: 'Daily targets' }
-};
+function getTabMeta(){
+  return {
+    today:   { greeting: null, sub: null },
+    weekly:  { greeting: tr('weekly_title'), sub: tr('sub_weekly') },
+    recipes: { greeting: tr('my_recipes'), sub: tr('sub_recipes') },
+    api:     { greeting: 'API keys', sub: tr('sub_api') },
+    goals:   { greeting: tr('your_goals'), sub: tr('sub_goals') }
+  };
+}
 
 function renderTopbar(){
   const isToday = currentDate === localDateStr(new Date());
-  const meta = TAB_META[currentTab] || {};
+  const meta = getTabMeta()[currentTab] || {};
   const greeting = currentTab==='today' ? greetingForNow() : meta.greeting;
   const sub = currentTab==='today' ? shortDate(currentDate) : meta.sub;
   return `
@@ -847,14 +1040,14 @@ function renderTopbar(){
 
 function renderBottomNav(){
   const tabs = [
-    ['today','Today',ICONS.home],
-    ['weekly','Weekly',ICONS.chart],
-    ['recipes','Recipes',ICONS.book],
-    ['api','API',ICONS.key],
-    ['goals','Goals',ICONS.target]
+    ['today',tr('nav_today'),ICONS.home],
+    ['weekly',tr('nav_weekly'),ICONS.chart],
+    ['recipes',tr('nav_recipes'),ICONS.book],
+    ['api',tr('nav_api'),ICONS.key],
+    ['goals',tr('nav_goals'),ICONS.target]
   ];
   return `<nav class="bottom-nav">
-    ${tabs.map(t=>navBtn(t)).join('')}
+    ${tabs.map(tb=>navBtn(tb)).join('')}
   </nav>`;
 }
 function navBtn([id,label,icon]){
@@ -884,6 +1077,10 @@ function renderToday(){
     </div>`;
   };
 
+  const todayWeight = weightForDate(currentDate);
+  const yesterdayEntries = entriesForDate(shiftDate(currentDate,-1));
+  const showCopyYesterday = dayEntries.length===0 && yesterdayEntries.length>0;
+
   return `
   <div class="glass ring-card">
     <div class="ring-wrap">
@@ -902,16 +1099,31 @@ function renderToday(){
       <div class="ring-center">
         <div class="ring-num" id="ringNum">0</div>
         <div class="ring-sub ${over?'over':(met?'met':'')}">
-          ${over ? `${Math.abs(Math.round(remaining))} kcal over` : `${Math.round(remaining)} kcal left`}
+          ${over ? `${Math.abs(Math.round(remaining))} ${tr('kcal_over')}` : `${Math.round(remaining)} ${tr('kcal_left')}`}
         </div>
       </div>
     </div>
     <div class="pill-row">
-      ${macroPill('Protein','protein','var(--protein)', t.protein, goals.protein)}
-      ${macroPill('Carbs','carbs','var(--carbs)', t.carbs, goals.carbs)}
-      ${macroPill('Fat','fat','var(--fat)', t.fat, goals.fat)}
+      ${macroPill(tr('protein'),'protein','var(--protein)', t.protein, goals.protein)}
+      ${macroPill(tr('carbs'),'carbs','var(--carbs)', t.carbs, goals.carbs)}
+      ${macroPill(tr('fat'),'fat','var(--fat)', t.fat, goals.fat)}
     </div>
   </div>
+
+  <div class="glass weight-card" data-action="open-weight">
+    <div class="weight-left">
+      <div class="weight-icon">${ICONS.scale}</div>
+      <div>
+        <div class="weight-val">${todayWeight ? Math.round(kgToDisplay(todayWeight.kg, weightUnit)*10)/10 + ' ' + weightUnit : tr('weight_not_logged')}</div>
+        <div class="weight-sub">${tr('weight_title')}</div>
+      </div>
+    </div>
+    <button class="btn-ghost" style="width:auto; padding:8px 14px; margin:0;" data-action="open-weight">${todayWeight ? tr('weight_edit') : tr('weight_log')}</button>
+  </div>
+
+  ${showCopyYesterday ? `
+  <button class="copy-yesterday-btn" data-action="copy-yesterday">${ICONS.copy} ${tr('copy_yesterday')}</button>
+  ` : ''}
 
   ${MEAL_TYPES.map(m=>renderMealGroup(m, dayEntries.filter(e=>e.meal===m))).join('')}
   `;
@@ -932,7 +1144,7 @@ function renderMealGroup(meal, items){
       <button class="meal-add" data-action="open-add" data-meal="${meal}">${ICONS.plus}</button>
     </div>
     ${items.length===0
-      ? `<div class="meal-empty">Nothing logged yet — tap + to snap a photo.</div>`
+      ? `<div class="meal-empty">${tr('nothing_logged')}</div>`
       : items.map(e=>`
         <div class="entry-row" data-action="edit-entry" data-id="${e.id}">
           ${e.thumb
@@ -992,6 +1204,39 @@ function renderWeekly(){
   const avgFat = Math.round(avg.fat/7);
   const daysMet = dayTotals.filter(t=>t.calories>0 && t.calories<=goals.calories).length;
 
+  // weight trend
+  const weightPoints = dates.map(d=>weightForDate(d)).map((w,i)=> w ? { i, kg: w.kg } : null).filter(Boolean);
+  const wChartH = 70, wChartW = svgW;
+  let weightChartHtml = '';
+  if(weightPoints.length>=2){
+    const kgVals = weightPoints.map(p=>p.kg);
+    const minKg = Math.min(...kgVals), maxKg = Math.max(...kgVals);
+    const range = Math.max(0.5, maxKg-minKg);
+    const xFor = i => gap + i*(barW+gap) + barW/2;
+    const yFor = kg => wChartH - ((kg-minKg)/range)*wChartH*0.8 - wChartH*0.1;
+    const pathPoints = weightPoints.map(p=>`${xFor(p.i)},${yFor(p.kg)}`).join(' ');
+    const dots = weightPoints.map(p=>`<circle cx="${xFor(p.i)}" cy="${yFor(p.kg)}" r="3.5" fill="var(--carbs)"/>`).join('');
+    const first = weightPoints[0].kg, last = weightPoints[weightPoints.length-1].kg;
+    const change = last-first;
+    const changeDisplay = Math.round(Math.abs(kgToDisplay(change, weightUnit))*10)/10;
+    const changeSign = change>0 ? '+' : (change<0 ? '−' : '');
+    weightChartHtml = `
+    <div class="glass chart-card">
+      <svg viewBox="0 0 ${wChartW} ${wChartH}" width="100%" height="${wChartH}">
+        <polyline points="${pathPoints}" fill="none" stroke="var(--carbs)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+      </svg>
+      <div class="chart-legend">${tr('weight_trend')}</div>
+    </div>
+    <div class="stat-grid">
+      ${statTile(ICONS.scale,'var(--carbs)', Math.round(kgToDisplay(last,weightUnit)*10)/10+' '+weightUnit, tr('weight_current'))}
+      ${statTile(null,change<=0?'var(--success)':'var(--danger)', changeSign+changeDisplay+' '+weightUnit, tr('weight_change'), true)}
+    </div>
+    `;
+  } else if(weights.length>0){
+    weightChartHtml = `<div class="glass form-card"><div class="items-note" style="margin-bottom:0;">${tr('weight_need_more')}</div></div>`;
+  }
+
   return `
   <div class="glass chart-card">
     <svg viewBox="0 0 ${svgW} ${chartH+26}" width="100%" height="${chartH+26}">
@@ -1004,17 +1249,19 @@ function renderWeekly(){
       <line x1="0" y1="${goalY}" x2="${svgW}" y2="${goalY}" stroke="rgba(255,255,255,0.25)" stroke-width="1.3" stroke-dasharray="4,4"/>
       ${bars}
     </svg>
-    <div class="chart-legend">- - - daily goal · ${goals.calories} kcal</div>
+    <div class="chart-legend">- - - ${tr('daily_goal_legend')} · ${goals.calories} kcal</div>
   </div>
 
   <div class="stat-grid">
-    ${statTile(ICONS.flame,'var(--cal-b)', avgCal+' kcal','Avg / day')}
-    ${statTile(ICONS.calendarCheck,'var(--success)', daysMet+'/7','Goal days met')}
-    ${statTile(null,'var(--protein)', avgProtein+'g','Avg protein', true)}
-    ${statTile(null,'var(--carbs)', avgCarbs+'g','Avg carbs', true)}
-    ${statTile(null,'var(--fat)', avgFat+'g','Avg fat', true)}
-    ${statTile(ICONS.meal,'var(--text-dim)', weekEntries.length,'Meals logged')}
+    ${statTile(ICONS.flame,'var(--cal-b)', avgCal+' kcal',tr('avg_day'))}
+    ${statTile(ICONS.calendarCheck,'var(--success)', daysMet+'/7',tr('goal_days_met'))}
+    ${statTile(null,'var(--protein)', avgProtein+'g',tr('avg_protein'), true)}
+    ${statTile(null,'var(--carbs)', avgCarbs+'g',tr('avg_carbs'), true)}
+    ${statTile(null,'var(--fat)', avgFat+'g',tr('avg_fat'), true)}
+    ${statTile(ICONS.meal,'var(--text-dim)', weekEntries.length,tr('meals_logged'))}
   </div>
+
+  ${weightChartHtml}
   `;
 }
 function statTile(icon, color, num, label, dotOnly){
@@ -1038,24 +1285,24 @@ function animateWeeklyVisuals(){
 function renderGoals(){
   return `
   <div class="glass form-card">
-    <h3>Daily calorie goal</h3>
-    <div class="form-sub">Drag to set your target intake</div>
+    <h3>${tr('goal_cal_title')}</h3>
+    <div class="form-sub">${tr('goal_cal_sub')}</div>
     <div class="slider-num" id="calSliderNum">${goals.calories}</div>
     <input type="range" id="goal-calories" min="1000" max="4000" step="10" value="${goals.calories}">
     <div class="range-labels"><span>1000</span><span>kcal</span><span>4000</span></div>
 
-    <h3 style="margin-top:6px;">Macro targets</h3>
-    <div class="form-sub">Grams per day</div>
-    ${stepperRow('Protein','goal-protein','var(--protein)', goals.protein)}
-    ${stepperRow('Carbs','goal-carbs','var(--carbs)', goals.carbs)}
-    ${stepperRow('Fat','goal-fat','var(--fat)', goals.fat)}
+    <h3 style="margin-top:6px;">${tr('macro_targets_title')}</h3>
+    <div class="form-sub">${tr('macro_targets_sub')}</div>
+    ${stepperRow(tr('protein'),'goal-protein','var(--protein)', goals.protein)}
+    ${stepperRow(tr('carbs'),'goal-carbs','var(--carbs)', goals.carbs)}
+    ${stepperRow(tr('fat'),'goal-fat','var(--fat)', goals.fat)}
 
     <div style="display:flex; gap:8px; margin-top:14px;">
-      <button class="btn-ghost" data-action="auto-macros" style="flex:1;">Suggest macros from calories</button>
-      <button class="btn-ghost" data-action="calc-calories" style="flex:1;">Calories from macros</button>
+      <button class="btn-ghost" data-action="auto-macros" style="flex:1;">${tr('suggest_macros')}</button>
+      <button class="btn-ghost" data-action="calc-calories" style="flex:1;">${tr('calc_calories')}</button>
     </div>
-    <button class="btn-primary" data-action="save-goals">Save goals</button>
-    <div class="link-danger" data-action="clear-data">Clear all logged meals</div>
+    <button class="btn-primary" data-action="save-goals">${tr('save_goals')}</button>
+    <div class="link-danger" data-action="clear-data">${tr('clear_all_meals')}</div>
   </div>
   `;
 }
@@ -1063,14 +1310,14 @@ function renderGoals(){
 function renderRecipesTab(){
   return `
   <div class="glass form-card">
-    <h3>My recipes</h3>
+    <h3>${tr('my_recipes')}</h3>
     <div class="form-sub">Build a recipe from ingredients &amp; yield, or save a quick one while logging a meal. Tap a recipe to edit it.</div>
-    <button class="btn-primary" data-action="open-recipe-builder" style="margin-top:4px;">+ Create a recipe</button>
+    <button class="btn-primary" data-action="open-recipe-builder" style="margin-top:4px;">${tr('create_recipe')}</button>
   </div>
 
   ${recipes.length===0 ? `
   <div class="glass form-card">
-    <div class="items-note" style="margin-bottom:0;">No saved recipes yet. Build one above, or check "Save as a recipe" next time you log a meal.</div>
+    <div class="items-note" style="margin-bottom:0;">${tr('recipes_empty')}</div>
   </div>
   ` : `
   <div class="glass form-card">
@@ -1094,25 +1341,41 @@ function renderRecipesTab(){
 function renderApiTab(){
   return `
   <div class="glass form-card">
-    <h3>Google Gemini API key <span style="color:var(--success); font-weight:600; font-size:11px;">FREE</span></h3>
-    <div class="form-sub">Recommended — no cost, no card needed. Get a free key at aistudio.google.com/apikey, sign in with Google, tap "Create API key." Used first for photo analysis if set.</div>
-    <div class="field">
-      <label>Gemini API key</label>
-      <input type="password" id="gemini-key" value="${escapeHtml(geminiApiKey)}" placeholder="AIza...">
+    <h3>${tr('language_title')}</h3>
+    <div class="form-sub">${tr('language_sub')}</div>
+    <div class="meal-select" style="margin-bottom:0;">
+      <div class="meal-chip ${appLang==='en'?'active':''}" data-action="set-lang" data-lang="en">English</div>
+      <div class="meal-chip ${appLang==='th'?'active':''}" data-action="set-lang" data-lang="th">ไทย</div>
     </div>
-    <button class="btn-ghost" data-action="save-gemini-key" style="margin-top:4px;">${geminiApiKey ? 'Update key' : 'Save key'}</button>
-    ${geminiApiKey ? `<div class="link-danger" data-action="remove-gemini-key" style="color:var(--text-dim);">Remove saved key</div>` : ''}
   </div>
 
   <div class="glass form-card">
-    <h3>Anthropic API key <span style="color:var(--text-dim); font-weight:500; font-size:11px;">optional, paid</span></h3>
-    <div class="form-sub">Used only if no Gemini key is set above. Get one at console.anthropic.com/settings/keys — stored only on this device.</div>
+    <h3>${tr('gemini_title')} <span style="color:var(--success); font-weight:600; font-size:11px;">FREE</span></h3>
+    <div class="form-sub">${tr('gemini_sub')}</div>
     <div class="field">
-      <label>API key</label>
+      <label>${tr('api_key_label')}</label>
+      <input type="password" id="gemini-key" value="${escapeHtml(geminiApiKey)}" placeholder="AIza...">
+    </div>
+    <button class="btn-ghost" data-action="save-gemini-key" style="margin-top:4px;">${geminiApiKey ? tr('update_key') : tr('save_key')}</button>
+    ${geminiApiKey ? `<div class="link-danger" data-action="remove-gemini-key" style="color:var(--text-dim);">${tr('remove_key')}</div>` : ''}
+  </div>
+
+  <div class="glass form-card">
+    <h3>${tr('anthropic_title')} <span style="color:var(--text-dim); font-weight:500; font-size:11px;">optional, paid</span></h3>
+    <div class="form-sub">${tr('anthropic_sub')}</div>
+    <div class="field">
+      <label>${tr('api_key_label')}</label>
       <input type="password" id="api-key" value="${escapeHtml(apiKey)}" placeholder="sk-ant-...">
     </div>
-    <button class="btn-ghost" data-action="save-key" style="margin-top:4px;">${apiKey ? 'Update key' : 'Save key'}</button>
-    ${apiKey ? `<div class="link-danger" data-action="remove-key" style="color:var(--text-dim);">Remove saved key</div>` : ''}
+    <button class="btn-ghost" data-action="save-key" style="margin-top:4px;">${apiKey ? tr('update_key') : tr('save_key')}</button>
+    ${apiKey ? `<div class="link-danger" data-action="remove-key" style="color:var(--text-dim);">${tr('remove_key')}</div>` : ''}
+  </div>
+
+  <div class="glass form-card">
+    <h3>${tr('backup_title')}</h3>
+    <div class="form-sub">${tr('backup_sub')}</div>
+    <button class="btn-primary" data-action="export-backup" style="margin-top:4px;">${tr('export_backup')}</button>
+    <button class="btn-ghost" data-action="trigger-import" style="margin-top:8px;">${tr('import_backup')}</button>
   </div>
   `;
 }
@@ -1129,13 +1392,34 @@ function stepperRow(label, id, color, val){
 }
 
 // ---------- RECIPE BUILDER ----------
+// ---------- WEIGHT SHEET ----------
+function renderWeightSheet(){
+  return `
+  <div class="sheet-overlay" data-action="ws-overlay-close">
+    <div class="sheet" data-stop="1">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">
+        <span>${tr('weight_sheet_title')}</span>
+        <button class="sheet-close" data-action="ws-close">${ICONS.close}</button>
+      </div>
+      <div class="weight-unit-select">
+        <div class="meal-chip ${wsUnit==='kg'?'active':''}" data-action="ws-set-unit" data-unit="kg" style="flex:1;">kg</div>
+        <div class="meal-chip ${wsUnit==='lb'?'active':''}" data-action="ws-set-unit" data-unit="lb" style="flex:1;">lb</div>
+      </div>
+      <div class="field"><label>${tr('weight_field')} (${wsUnit})</label><input type="number" id="ws-value" value="${escapeHtml(wsValue)}" min="0" step="0.1" inputmode="decimal"></div>
+      <button class="btn-primary" data-action="ws-save">${tr('weight_save')}</button>
+      ${weightForDate(currentDate) ? `<div class="link-danger" data-action="ws-delete" style="color:var(--text-dim);">${tr('weight_delete')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 function renderRecipeBuilder(){
   let body = '';
   if(rbStep==='edit'){
     body = `
-      <div class="field"><label>Recipe name</label><input type="text" id="rb-name" value="${escapeHtml(rbName)}" placeholder="e.g. Pad kra pao"></div>
+      <div class="field"><label>${tr('recipe_name')}</label><input type="text" id="rb-name" value="${escapeHtml(rbName)}" placeholder="e.g. Pad kra pao"></div>
 
-      <div class="form-sub" style="margin-top:2px; margin-bottom:8px;">Ingredients &amp; amounts</div>
+      <div class="form-sub" style="margin-top:2px; margin-bottom:8px;">${tr('ingredients_label')}</div>
       <div id="rb-ingredient-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
         ${rbIngredients.map(ing=>`
           <div style="display:flex; gap:8px; align-items:center;">
@@ -1148,25 +1432,25 @@ function renderRecipeBuilder(){
           </div>
         `).join('')}
       </div>
-      <button class="btn-ghost" data-action="rb-add-ingredient" style="margin-bottom:16px;">+ Add ingredient</button>
+      <button class="btn-ghost" data-action="rb-add-ingredient" style="margin-bottom:16px;">${tr('add_ingredient')}</button>
 
-      <div class="field"><label>Recipe yields (servings)</label><input type="number" id="rb-yield" value="${rbYield}" min="1" step="1"></div>
+      <div class="field"><label>${tr('recipe_yields')}</label><input type="number" id="rb-yield" value="${rbYield}" min="1" step="1"></div>
 
-      <button class="btn-primary" data-action="rb-calculate">Calculate nutrition</button>
-      ${rbEditingRecipeId ? `<div class="link-danger" data-action="rb-delete" style="color:var(--text-dim);">Delete this recipe</div>` : ''}
+      <button class="btn-primary" data-action="rb-calculate">${tr('calculate_nutrition')}</button>
+      ${rbEditingRecipeId ? `<div class="link-danger" data-action="rb-delete" style="color:var(--text-dim);">${tr('delete_recipe')}</div>` : ''}
     `;
   } else if(rbStep==='calculating'){
     body = `
       <div class="skeleton-row"><div class="skeleton-block" style="height:14px; width:60%; margin-bottom:8px;"></div></div>
       <div class="skeleton-row"><div class="skeleton-block" style="height:36px; width:100%;"></div></div>
-      <div class="loading-label">Calculating recipe nutrition…</div>
+      <div class="loading-label">${tr('calculating')}</div>
     `;
   } else if(rbStep==='error'){
     body = `
       <div class="error-box">${escapeHtml(rbError)}</div>
       <div style="display:flex; gap:10px;">
-        <button class="btn-ghost" data-action="rb-back-to-edit" style="flex:1;">Back</button>
-        <button class="btn-primary" data-action="rb-calculate" style="flex:1; margin-top:0;">Try again</button>
+        <button class="btn-ghost" data-action="rb-back-to-edit" style="flex:1;">${tr('back')}</button>
+        <button class="btn-primary" data-action="rb-calculate" style="flex:1; margin-top:0;">${tr('try_again')}</button>
       </div>
     `;
   } else if(rbStep==='result'){
@@ -1176,19 +1460,19 @@ function renderRecipeBuilder(){
     const perCarbs = Math.round(t.carbs/Math.max(1,rbYield));
     const perFat = Math.round(t.fat/Math.max(1,rbYield));
     body = `
-      <div class="items-note">Whole recipe totals — edit if needed. Values per serving are calculated automatically below.</div>
-      <div class="field"><label>Total calories (kcal)</label><input type="number" id="rb-tot-calories" value="${Math.round(t.calories)}" min="0"></div>
+      <div class="items-note">${tr('totals_note')}</div>
+      <div class="field"><label>${tr('total_calories')}</label><input type="number" id="rb-tot-calories" value="${Math.round(t.calories)}" min="0"></div>
       <div class="macro-input-row">
-        <div class="field"><label>Total protein (g)</label><input type="number" id="rb-tot-protein" value="${Math.round(t.protein)}" min="0"></div>
-        <div class="field"><label>Total carbs (g)</label><input type="number" id="rb-tot-carbs" value="${Math.round(t.carbs)}" min="0"></div>
-        <div class="field"><label>Total fat (g)</label><input type="number" id="rb-tot-fat" value="${Math.round(t.fat)}" min="0"></div>
+        <div class="field"><label>${tr('total_protein')}</label><input type="number" id="rb-tot-protein" value="${Math.round(t.protein)}" min="0"></div>
+        <div class="field"><label>${tr('total_carbs')}</label><input type="number" id="rb-tot-carbs" value="${Math.round(t.carbs)}" min="0"></div>
+        <div class="field"><label>${tr('total_fat')}</label><input type="number" id="rb-tot-fat" value="${Math.round(t.fat)}" min="0"></div>
       </div>
-      <div class="field"><label>Servings</label><input type="number" id="rb-yield-2" value="${rbYield}" min="1" step="1"></div>
+      <div class="field"><label>${tr('servings')}</label><input type="number" id="rb-yield-2" value="${rbYield}" min="1" step="1"></div>
       <div class="items-note" id="rb-per-serving-preview" style="background:rgba(255,193,94,0.08); border:1px solid rgba(255,193,94,0.25);">
-        Per serving: <strong>${perCal} kcal</strong> · P ${perProtein}g · C ${perCarbs}g · F ${perFat}g
+        ${tr('per_serving')}: <strong>${perCal} kcal</strong> · P ${perProtein}g · C ${perCarbs}g · F ${perFat}g
       </div>
-      <button class="btn-primary" data-action="rb-save">${rbEditingRecipeId ? 'Save changes' : 'Save recipe'}</button>
-      <button class="btn-ghost" data-action="rb-back-to-edit" style="margin-top:8px;">Back to ingredients</button>
+      <button class="btn-primary" data-action="rb-save">${rbEditingRecipeId ? tr('save_changes') : tr('save_recipe')}</button>
+      <button class="btn-ghost" data-action="rb-back-to-edit" style="margin-top:8px;">${tr('back_to_ingredients')}</button>
     `;
   }
 
@@ -1197,7 +1481,7 @@ function renderRecipeBuilder(){
     <div class="sheet" data-stop="1">
       <div class="sheet-handle"></div>
       <div class="sheet-title">
-        <span>${rbEditingRecipeId ? 'Edit recipe' : 'Create a recipe'}</span>
+        <span>${rbEditingRecipeId ? tr('edit_recipe_title') : tr('create_recipe_title')}</span>
         <button class="sheet-close" data-action="rb-close">${ICONS.close}</button>
       </div>
       ${body}
@@ -1212,22 +1496,22 @@ function renderSheet(){
     body = `
       <div class="capture-box" data-action="trigger-file" data-mode="meal">
         <div class="capture-icon">${ICONS.camera}</div>
-        <div class="capture-text">Snap a meal photo</div>
-        <div class="capture-hint">We'll estimate calories &amp; nutrition</div>
+        <div class="capture-text">${tr('snap_meal')}</div>
+        <div class="capture-hint">${tr('snap_meal_hint')}</div>
       </div>
       <div class="capture-box" data-action="trigger-file" data-mode="label" style="margin-top:10px;">
         <div class="capture-icon">${ICONS.tag}</div>
-        <div class="capture-text">Scan a nutrition label</div>
-        <div class="capture-hint">Reads the printed Nutrition Facts panel</div>
+        <div class="capture-text">${tr('scan_label')}</div>
+        <div class="capture-hint">${tr('scan_label_hint')}</div>
       </div>
       ${recipes.length>0 ? `
-      <button class="btn-ghost" data-action="open-recipes" style="margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;">${ICONS.book} Choose from my recipes</button>
+      <button class="btn-ghost" data-action="open-recipes" style="margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;">${ICONS.book} ${tr('choose_recipe')}</button>
       ` : ''}
-      <div class="manual-link" data-action="go-manual">Enter details manually instead</div>
+      <div class="manual-link" data-action="go-manual">${tr('enter_manually')}</div>
     `;
   } else if(sheetStep==='recipes'){
     body = `
-      ${recipes.length===0 ? `<div class="items-note">No saved recipes yet. Save one from the entry screen next time you log a meal.</div>` : `
+      ${recipes.length===0 ? `<div class="items-note">${tr('recipes_empty')}</div>` : `
       <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
         ${recipes.map(rc=>`
           <div class="entry-row" data-action="pick-recipe" data-id="${rc.id}" style="border-top:none; background:rgba(255,255,255,0.03); border-radius:12px; padding:10px 12px;">
@@ -1242,8 +1526,8 @@ function renderSheet(){
         `).join('')}
       </div>
       `}
-      <button class="btn-ghost" data-action="goto-recipe-builder" style="margin-bottom:8px;">+ Create a new recipe</button>
-      <button class="btn-ghost" data-action="back-to-capture">Back</button>
+      <button class="btn-ghost" data-action="goto-recipe-builder" style="margin-bottom:8px;">${tr('create_new_recipe')}</button>
+      <button class="btn-ghost" data-action="back-to-capture">${tr('back')}</button>
     `;
   } else if(sheetStep==='analyzing'){
     body = `
@@ -1251,15 +1535,15 @@ function renderSheet(){
       <div class="skeleton-row"><div class="skeleton-block" style="width:44px;height:44px;border-radius:12px;"></div>
         <div style="flex:1;"><div class="skeleton-block" style="height:11px; width:70%; margin-bottom:8px;"></div><div class="skeleton-block" style="height:11px; width:40%;"></div></div></div>
       <div class="skeleton-row"><div class="skeleton-block" style="height:36px; width:100%;"></div></div>
-      <div class="loading-label">${sheetMode==='label' ? 'Reading the label…' : 'Reading your meal…'}</div>
+      <div class="loading-label">${sheetMode==='label' ? tr('reading_label') : tr('reading_meal')}</div>
     `;
   } else if(sheetStep==='error'){
     body = `
       ${sheetThumb ? `<img class="preview-img" src="data:${sheetImageMime};base64,${sheetThumb}">` : ''}
       <div class="error-box">${escapeHtml(sheetError)}</div>
       <div style="display:flex; gap:10px;">
-        <button class="btn-ghost" data-action="go-manual" style="flex:1;">Enter manually</button>
-        <button class="btn-primary" data-action="retry-analyze" style="flex:1; margin-top:0;">Try again</button>
+        <button class="btn-ghost" data-action="go-manual" style="flex:1;">${tr('enter_manually_btn')}</button>
+        <button class="btn-primary" data-action="retry-analyze" style="flex:1; margin-top:0;">${tr('try_again')}</button>
       </div>
     `;
   } else if(sheetStep==='result' || sheetStep==='manual'){
@@ -1271,20 +1555,20 @@ function renderSheet(){
       <div class="meal-select">
         ${MEAL_TYPES.map(m=>`<div class="meal-chip ${sheetMeal===m?'active':''}" data-action="pick-meal" data-meal="${m}">${MEAL_EMOJI[m]} ${MEAL_LABELS[m]}</div>`).join('')}
       </div>
-      <div class="field"><label>Food name</label><input type="text" id="res-name" value="${escapeHtml(r.name)}" placeholder="e.g. Grilled chicken salad"></div>
-      <div class="field"><label>Portion</label><input type="text" id="res-portion" value="${escapeHtml(r.portion||'')}" placeholder="e.g. 1 bowl"></div>
-      ${isLabel ? `<div class="field"><label>Servings consumed</label><input type="number" id="res-servings" value="${r.servingsConsumed||1}" min="0.25" step="0.25"></div>` : ''}
-      <div class="field"><label>Calories (kcal)</label><input type="number" id="res-calories" value="${Math.round(r.calories)}" min="0"></div>
+      <div class="field"><label>${tr('food_name')}</label><input type="text" id="res-name" value="${escapeHtml(r.name)}" placeholder="e.g. Grilled chicken salad"></div>
+      <div class="field"><label>${tr('portion')}</label><input type="text" id="res-portion" value="${escapeHtml(r.portion||'')}" placeholder="e.g. 1 bowl"></div>
+      ${isLabel ? `<div class="field"><label>${tr('servings_consumed')}</label><input type="number" id="res-servings" value="${r.servingsConsumed||1}" min="0.25" step="0.25"></div>` : ''}
+      <div class="field"><label>${tr('calories_kcal')}</label><input type="number" id="res-calories" value="${Math.round(r.calories)}" min="0"></div>
       <div class="macro-input-row">
-        <div class="field"><label>Protein (g)</label><input type="number" id="res-protein" value="${Math.round(r.protein)}" min="0"></div>
-        <div class="field"><label>Carbs (g)</label><input type="number" id="res-carbs" value="${Math.round(r.carbs)}" min="0"></div>
-        <div class="field"><label>Fat (g)</label><input type="number" id="res-fat" value="${Math.round(r.fat)}" min="0"></div>
+        <div class="field"><label>${tr('protein_g')}</label><input type="number" id="res-protein" value="${Math.round(r.protein)}" min="0"></div>
+        <div class="field"><label>${tr('carbs_g')}</label><input type="number" id="res-carbs" value="${Math.round(r.carbs)}" min="0"></div>
+        <div class="field"><label>${tr('fat_g')}</label><input type="number" id="res-fat" value="${Math.round(r.fat)}" min="0"></div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; margin:2px 0 14px;">
         <input type="checkbox" id="res-save-recipe" style="width:18px; height:18px; accent-color: var(--cal-b);">
-        <label for="res-save-recipe" style="font-size:12.5px; color:var(--text-dim);">Save as a recipe for quick logging later</label>
+        <label for="res-save-recipe" style="font-size:12.5px; color:var(--text-dim);">${tr('save_as_recipe')}</label>
       </div>
-      <button class="btn-primary" data-action="confirm-add" style="margin-top:0;">${editingEntryId?'Save changes':'Add to log'}</button>
+      <button class="btn-primary" data-action="confirm-add" style="margin-top:0;">${editingEntryId?tr('save_changes'):tr('add_to_log')}</button>
     `;
   }
 
@@ -1293,7 +1577,7 @@ function renderSheet(){
     <div class="sheet" data-stop="1">
       <div class="sheet-handle"></div>
       <div class="sheet-title">
-        <span>${editingEntryId?'Edit meal':'Log a meal'}</span>
+        <span>${editingEntryId?tr('edit_meal'):tr('log_meal')}</span>
         <button class="sheet-close" data-action="close-sheet">${ICONS.close}</button>
       </div>
       ${body}
@@ -1341,6 +1625,25 @@ function attachHandlers(){
     else if(action==='calc-calories'){ caloriesFromMacros(); }
     else if(action==='clear-data'){ await clearAllData(); }
     else if(action==='save-key'){ await saveApiKey(); }
+    else if(action==='set-lang'){ await setLanguage(el.dataset.lang); }
+    else if(action==='open-weight'){ openWeightSheet(); }
+    else if(action==='ws-close'){ wsOpen=false; render(); }
+    else if(action==='ws-overlay-close'){ if(e.target===el){ wsOpen=false; render(); } }
+    else if(action==='ws-set-unit'){
+      syncWsValue();
+      const newUnit = el.dataset.unit;
+      if(wsValue !== '' && !isNaN(Number(wsValue)) && newUnit !== wsUnit){
+        const kg = displayToKg(Number(wsValue), wsUnit);
+        wsValue = String(Math.round(kgToDisplay(kg, newUnit)*10)/10);
+      }
+      wsUnit = newUnit;
+      render();
+    }
+    else if(action==='ws-save'){ await saveWeight(); }
+    else if(action==='ws-delete'){ await deleteWeightEntry(); }
+    else if(action==='copy-yesterday'){ await copyYesterdayMeals(); }
+    else if(action==='export-backup'){ exportBackup(); }
+    else if(action==='trigger-import'){ document.getElementById('backupFileInput').click(); }
     else if(action==='remove-key'){ await removeApiKey(); }
     else if(action==='save-gemini-key'){ await saveGeminiKey(); }
     else if(action==='remove-gemini-key'){ await removeGeminiKey(); }
@@ -1428,6 +1731,63 @@ document.getElementById('photoInput').addEventListener('change', async (e)=>{
   }
   e.target.value = '';
 });
+
+document.getElementById('backupFileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!data || typeof data !== 'object') throw new Error('invalid backup file');
+
+    if(!confirm(tr('restore_confirm'))){ e.target.value=''; return; }
+
+    goals = data.goals || goals;
+    entries = Array.isArray(data.entries) ? data.entries : entries;
+    recipes = Array.isArray(data.recipes) ? data.recipes : recipes;
+    weights = Array.isArray(data.weights) ? data.weights : weights;
+    weightUnit = (data.weightUnit==='lb'||data.weightUnit==='kg') ? data.weightUnit : weightUnit;
+    apiKey = typeof data.apiKey === 'string' ? data.apiKey : apiKey;
+    geminiApiKey = typeof data.geminiApiKey === 'string' ? data.geminiApiKey : geminiApiKey;
+    appLang = (data.appLang==='th'||data.appLang==='en') ? data.appLang : appLang;
+    MEAL_LABELS = appLang==='th' ? MEAL_LABELS_TH : MEAL_LABELS_EN;
+
+    await saveGoalsToStorage(goals);
+    await saveEntriesToStorage(entries);
+    await saveRecipesToStorage(recipes);
+    await saveWeightsToStorage(weights);
+    await saveWeightUnitToStorage(weightUnit);
+    await saveApiKeyToStorage(apiKey);
+    await saveGeminiKeyToStorage(geminiApiKey);
+    await saveLangToStorage(appLang);
+
+    render();
+    showToast(tr('backup_restored'));
+  }catch(err){
+    console.error('restore failed', err);
+    showToast(tr('backup_bad_file'));
+  }
+  e.target.value = '';
+});
+
+function exportBackup(){
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    goals, entries, recipes, weights, weightUnit,
+    apiKey, geminiApiKey, appLang
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `calorie-snap-backup-${localDateStr(new Date())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  showToast(tr('backup_downloaded'));
+}
 
 function openAddModal(meal){
   sheetOpen = true;
@@ -1571,7 +1931,8 @@ async function analyzePhoto(){
   sheetStep = 'analyzing';
   render();
   try{
-    const prompt = sheetMode === 'label' ? NUTRITION_LABEL_PROMPT : NUTRITION_PROMPT;
+    const langSuffix = appLang === 'th' ? '\n\nRespond with all food/product names and any text values in Thai language (ภาษาไทย). Keep JSON keys in English exactly as specified.' : '';
+    const prompt = (sheetMode === 'label' ? NUTRITION_LABEL_PROMPT : NUTRITION_PROMPT) + langSuffix;
     const parsed = geminiApiKey ? await callGemini(prompt) : await callAnthropic(prompt);
 
     if(sheetMode === 'label'){
@@ -1804,7 +2165,8 @@ async function calculateRecipeNutrition(){
       const unitText = i.unit === 'to taste' ? 'to taste' : (amt ? `${amt} ${i.unit || ''}`.trim() : (i.unit || 'unspecified amount'));
       return `- ${i.name}: ${unitText}`;
     }).join('\n');
-    const prompt = RECIPE_CALC_PROMPT_HEADER + ingredientLines;
+    const rbLangSuffix = appLang === 'th' ? '\n\nRespond with the "note" text in Thai language (ภาษาไทย). Keep JSON keys in English exactly as specified.' : '';
+    const prompt = RECIPE_CALC_PROMPT_HEADER + ingredientLines + rbLangSuffix;
     const parsed = geminiApiKey ? await callGeminiTextOnly(prompt) : await callAnthropicTextOnly(prompt);
     rbTotals = {
       calories: Number(parsed.calories)||0,
@@ -1915,6 +2277,13 @@ async function saveApiKey(){
   showToast(apiKey ? 'API key saved' : 'API key cleared');
   render();
 }
+
+async function setLanguage(lang){
+  appLang = lang;
+  MEAL_LABELS = lang==='th' ? MEAL_LABELS_TH : MEAL_LABELS_EN;
+  await saveLangToStorage(lang);
+  render();
+}
 async function removeApiKey(){
   apiKey = '';
   await saveApiKeyToStorage('');
@@ -1935,12 +2304,69 @@ async function removeGeminiKey(){
   render();
 }
 
+// ---------- weight sheet logic ----------
+function syncWsValue(){
+  const el = document.getElementById('ws-value');
+  if(el) wsValue = el.value;
+}
+function openWeightSheet(){
+  wsOpen = true;
+  wsUnit = weightUnit;
+  const existing = weightForDate(currentDate);
+  if(existing){
+    wsValue = String(Math.round(kgToDisplay(existing.kg, wsUnit)*10)/10);
+  } else {
+    const latest = latestWeight();
+    wsValue = latest ? String(Math.round(kgToDisplay(latest.kg, wsUnit)*10)/10) : '';
+  }
+  render();
+}
+async function saveWeight(){
+  syncWsValue();
+  const val = Number(wsValue);
+  if(!val || val<=0){ showToast('Enter a valid weight'); return; }
+  const kg = displayToKg(val, wsUnit);
+  await upsertWeight(currentDate, kg);
+  weightUnit = wsUnit;
+  await saveWeightUnitToStorage(weightUnit);
+  wsOpen = false;
+  render();
+  showToast('Weight saved');
+}
+async function deleteWeightEntry(){
+  await deleteWeightForDate(currentDate);
+  wsOpen = false;
+  render();
+  showToast('Weight entry removed');
+}
+
+// ---------- copy yesterday's meals ----------
+async function copyYesterdayMeals(){
+  const yDate = shiftDate(currentDate,-1);
+  const yEntries = entriesForDate(yDate);
+  if(yEntries.length===0) return;
+  const copies = yEntries.map(e=>({
+    ...e,
+    id: uid(),
+    date: currentDate,
+    addedAt: Date.now()
+  }));
+  entries.push(...copies);
+  await saveEntriesToStorage(entries);
+  render();
+  showToast(`Copied ${copies.length} item${copies.length===1?'':'s'} from yesterday`);
+}
+
 async function init(){
   goals = await loadGoals();
   entries = await loadEntries();
   recipes = await loadRecipes();
+  weights = await loadWeights();
+  weightUnit = await loadWeightUnit();
   apiKey = await loadApiKey();
   geminiApiKey = await loadGeminiKey();
+  appLang = await loadLang();
+  MEAL_LABELS = appLang==='th' ? MEAL_LABELS_TH : MEAL_LABELS_EN;
   render();
 }
 init();

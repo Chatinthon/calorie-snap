@@ -268,6 +268,10 @@ button{font-family:inherit;}
   background-clip:text;
   color:transparent;
 }
+select option{
+  color:#111827 !important;
+  background:#ffffff !important;
+}
 input[type=range]{
   width:100%;
   -webkit-appearance:none;
@@ -582,6 +586,7 @@ input[type=range]::-webkit-slider-thumb{
 const DEFAULT_GOALS = { calories: 2000, protein: 100, carbs: 250, fat: 65 };
 const MEAL_TYPES = ['breakfast','lunch','dinner','snack'];
 const MEAL_LABELS = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', snack:'Snack' };
+const INGREDIENT_UNITS = ['g','kg','oz','lb','ml','l','tbsp','tsp','cup','whole','clove','slice','pinch','to taste'];
 const MEAL_EMOJI = { breakfast:'🍳', lunch:'🥗', dinner:'🍽️', snack:'🍪' };
 const MEAL_BG = {
   breakfast:'linear-gradient(135deg, rgba(255,122,89,0.25), rgba(255,193,94,0.15))',
@@ -1134,8 +1139,11 @@ function renderRecipeBuilder(){
       <div id="rb-ingredient-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
         ${rbIngredients.map(ing=>`
           <div style="display:flex; gap:8px; align-items:center;">
-            <input type="text" id="ing-name-${ing.id}" value="${escapeHtml(ing.name)}" placeholder="Ingredient" style="flex:1.3; padding:10px 11px; border-radius:11px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:13.5px;">
-            <input type="text" id="ing-amt-${ing.id}" value="${escapeHtml(ing.amount)}" placeholder="e.g. 200g" style="flex:1; padding:10px 11px; border-radius:11px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:13.5px;">
+            <input type="text" id="ing-name-${ing.id}" value="${escapeHtml(ing.name)}" placeholder="Ingredient" style="flex:1.4; padding:10px 11px; border-radius:11px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:13.5px;">
+            <input type="text" id="ing-amt-${ing.id}" value="${escapeHtml(ing.amount)}" placeholder="amt" inputmode="decimal" style="flex:0.55; padding:10px 8px; border-radius:11px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:13.5px; text-align:center;">
+            <select id="ing-unit-${ing.id}" style="flex:0.85; padding:10px 4px; border-radius:11px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:12.5px;">
+              ${INGREDIENT_UNITS.map(u=>`<option value="${u}" ${ing.unit===u?'selected':''} style="color:#111827; background:#ffffff;">${u}</option>`).join('')}
+            </select>
             <button class="entry-del" data-action="rb-remove-ingredient" data-id="${ing.id}">${ICONS.trash}</button>
           </div>
         `).join('')}
@@ -1340,7 +1348,7 @@ function attachHandlers(){
     else if(action==='open-recipe-builder'){ openRecipeBuilder(); }
     else if(action==='goto-recipe-builder'){ sheetOpen=false; openRecipeBuilder(); }
     else if(action==='edit-recipe'){ openRecipeBuilder(el.dataset.id); }
-    else if(action==='rb-add-ingredient'){ syncRbFromDOM(); rbIngredients.push({id:uid(), name:'', amount:''}); render(); }
+    else if(action==='rb-add-ingredient'){ syncRbFromDOM(); rbIngredients.push({id:uid(), name:'', amount:'', unit:'g'}); render(); }
     else if(action==='rb-remove-ingredient'){ syncRbFromDOM(); rbIngredients = rbIngredients.filter(i=>i.id!==el.dataset.id); render(); }
     else if(action==='rb-calculate'){ await calculateRecipeNutrition(); }
     else if(action==='rb-back-to-edit'){ rbStep='edit'; render(); }
@@ -1675,8 +1683,10 @@ function syncRbFromDOM(){
   rbIngredients.forEach(ing=>{
     const nEl = document.getElementById('ing-name-'+ing.id);
     const aEl = document.getElementById('ing-amt-'+ing.id);
+    const uEl = document.getElementById('ing-unit-'+ing.id);
     if(nEl) ing.name = nEl.value;
     if(aEl) ing.amount = aEl.value;
+    if(uEl) ing.unit = uEl.value;
   });
 }
 
@@ -1691,13 +1701,13 @@ function openRecipeBuilder(recipeId){
       rbEditingRecipeId = recipeId;
       rbName = rc.name;
       rbYield = rc.yieldServings || 1;
-      rbIngredients = (rc.ingredients && rc.ingredients.length) ? rc.ingredients.map(i=>({id:uid(), name:i.name, amount:i.amount})) : [{id:uid(), name:'', amount:''}];
+      rbIngredients = (rc.ingredients && rc.ingredients.length) ? rc.ingredients.map(i=>({id:uid(), name:i.name, amount:i.amount||'', unit:i.unit||'g'})) : [{id:uid(), name:'', amount:'', unit:'g'}];
     }
   } else {
     rbEditingRecipeId = null;
     rbName = '';
     rbYield = 4;
-    rbIngredients = [{id:uid(), name:'', amount:''}, {id:uid(), name:'', amount:''}];
+    rbIngredients = [{id:uid(), name:'', amount:'', unit:'g'}, {id:uid(), name:'', amount:'', unit:'g'}];
   }
   render();
 }
@@ -1789,7 +1799,11 @@ async function calculateRecipeNutrition(){
   rbStep = 'calculating';
   render();
   try{
-    const ingredientLines = validIngredients.map(i=>`- ${i.name}: ${i.amount || 'unspecified amount'}`).join('\n');
+    const ingredientLines = validIngredients.map(i=>{
+      const amt = (i.amount || '').trim();
+      const unitText = i.unit === 'to taste' ? 'to taste' : (amt ? `${amt} ${i.unit || ''}`.trim() : (i.unit || 'unspecified amount'));
+      return `- ${i.name}: ${unitText}`;
+    }).join('\n');
     const prompt = RECIPE_CALC_PROMPT_HEADER + ingredientLines;
     const parsed = geminiApiKey ? await callGeminiTextOnly(prompt) : await callAnthropicTextOnly(prompt);
     rbTotals = {
@@ -1823,7 +1837,7 @@ async function saveRecipeFromBuilder(){
     name: rbName.trim() || 'Recipe',
     portion: `1 of ${rbYield} servings`,
     yieldServings: rbYield,
-    ingredients: validIngredients.map(i=>({name:i.name.trim(), amount:i.amount.trim()})),
+    ingredients: validIngredients.map(i=>({name:i.name.trim(), amount:(i.amount||'').trim(), unit:i.unit||'g'})),
     calories: Math.round(totCalories/rbYield),
     protein: Math.round(totProtein/rbYield),
     carbs: Math.round(totCarbs/rbYield),
